@@ -1,5 +1,5 @@
 include node_manager
-package { 'puppetclassify':
+package { 'gem_puppetclassify':
   ensure   => present,
   provider => 'puppet_gem',
 }
