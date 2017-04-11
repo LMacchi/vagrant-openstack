@@ -3,7 +3,10 @@
 # Run puppet in all nodes
 sudo /opt/puppetlabs/client-tools/bin/puppet-job run --no-enforce-environment --query 'nodes {deactivated is null and expired is null}'
 # Sign CMs certificates
-sudo /opt/puppetlabs/puppet/bin/puppet cert sign --allow-dns-alt-names --all
+puppet cert list
+if [ $? -ne 0]; then
+  sudo /opt/puppetlabs/puppet/bin/puppet cert sign --allow-dns-alt-names --all
+fi
 # Run puppet in the CMs
 sudo /opt/puppetlabs/client-tools/bin/puppet-job run --no-enforce-environment --query 'nodes { certname ~ \"cm\" }'
 # Run puppet in the master
