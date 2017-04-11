@@ -20,7 +20,7 @@ cms = 2
 agents = 2
 install_replica = true
 install_lb = true
-install_gitlab = false
+install_gitlab = true
 
 ## Puppet
 pe_ver = "2017.1.1"
@@ -124,9 +124,8 @@ Vagrant.configure(2) do |config|
       /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then
         curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
-      else
-        sudo /usr/local/bin/puppet agent -t
-      fi
+      fi 
+      sudo /usr/local/bin/puppet agent -t
       SHELL
     end
   end
@@ -156,9 +155,8 @@ Vagrant.configure(2) do |config|
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
           curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
-        else
-          sudo /usr/local/bin/puppet agent -t
-        fi
+        fi 
+        sudo /usr/local/bin/puppet agent -t
         SHELL
     end
   end
@@ -188,9 +186,8 @@ Vagrant.configure(2) do |config|
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
           curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
-        else
-          sudo /usr/local/bin/puppet agent -t
-        fi
+        fi 
+        sudo /usr/local/bin/puppet agent -t
       SHELL
     end
   end
@@ -256,9 +253,8 @@ Vagrant.configure(2) do |config|
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
             curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
-          else
-            sudo /usr/local/bin/puppet agent -t
           fi
+          sudo /usr/local/bin/puppet agent -t
         SHELL
       end
     end
