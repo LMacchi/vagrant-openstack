@@ -51,6 +51,7 @@ Vagrant.configure(2) do |config|
       os.security_groups      = ['sg0']
     end
     master.vm.provision "shell", privileged: true, inline: <<-SHELL
+      sudo setenforce 0
       sudo hostnamectl set-hostname master.#{domain} --static
       sudo yum -y install vim wget
       sudo /usr/local/bin/puppet --version 2&> /dev/null
@@ -109,6 +110,7 @@ Vagrant.configure(2) do |config|
         os.security_groups      = ['sg0']
       end
       replica.vm.provision "shell", inline: <<-SHELL
+      sudo setenforce 0
       sudo hostnamectl set-hostname replica.#{domain} --static
       # Install puppet
       /usr/local/bin/puppet --version 2&> /dev/null
@@ -140,7 +142,7 @@ Vagrant.configure(2) do |config|
         os.security_groups      = ['sg0']
       end
       lb.vm.provision "shell", inline: <<-SHELL
-      sudo hostnamectl set-hostname lb.#{domain} --static
+      sudo setenforce 0
       sudo hostnamectl set-hostname lb.#{domain} --static
       # Install puppet
       /usr/local/bin/puppet --version 2&> /dev/null
@@ -173,7 +175,8 @@ Vagrant.configure(2) do |config|
           os.security_groups      = ['sg0']
         end
         cm.vm.provision "shell", inline: <<-SHELL
-        sudo hostnamectl set-hostname cm#{i}.#{domain} --static
+          sudo setenforce 0
+          sudo hostnamectl set-hostname cm#{i}.#{domain} --static
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
@@ -207,7 +210,8 @@ Vagrant.configure(2) do |config|
           os.security_groups      = ['sg0']
         end
         agent.vm.provision "shell", inline: <<-SHELL
-        sudo hostnamectl set-hostname agent#{i}.#{domain} --static
+          sudo setenforce 0
+          sudo hostnamectl set-hostname agent#{i}.#{domain} --static
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
