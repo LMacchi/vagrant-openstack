@@ -1,8 +1,4 @@
 include node_manager
-package { 'gem_puppetclassify':
-  ensure   => present,
-  provider => 'puppet_gem',
-}
 
 node_group { 'Compile Masters':
   ensure               => 'present',

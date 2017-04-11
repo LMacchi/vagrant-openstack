@@ -20,6 +20,7 @@ cms = 2
 agents = 2
 install_replica = true
 install_lb = true
+install_gitlab = false
 
 ## Puppet
 pe_ver = "2017.1.1"
@@ -71,11 +72,18 @@ Vagrant.configure(2) do |config|
         sudo echo "*.#{domain}" > /etc/puppetlabs/puppet/autosign.conf
         echo "Running puppet for the first time"
         sudo /opt/puppetlabs/puppet/bin/puppet agent -t
+        echo "Running Puppet again"
+        sudo /opt/puppetlabs/puppet/bin/puppet agent -t
+        echo "Running Puppet again"
+        sudo /opt/puppetlabs/puppet/bin/puppet agent -t
         # Create deploy token with admin, so replica can be provisioned
         echo "puppetlabs" | sudo /opt/puppetlabs/bin/puppet-access login admin --lifetime 90d
         # Deploy code
         echo "Deploying puppet code from version control server"
         sudo /vagrant/scripts/deploy_code.sh
+        # Clear environments cache
+        echo "Clearing environments cache"
+        sudo /vagrant/scripts/update_environments.sh
         # Update classes in console
         echo "Clearing classifier cache"
         sudo /vagrant/scripts/update_classes.sh
@@ -142,15 +150,47 @@ Vagrant.configure(2) do |config|
         os.security_groups      = ['sg0']
       end
       lb.vm.provision "shell", inline: <<-SHELL
-      sudo setenforce 0
-      sudo hostnamectl set-hostname lb.#{domain} --static
-      # Install puppet
-      /usr/local/bin/puppet --version 2&> /dev/null
-      if [ $? -ne 0 ]; then
-        curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
-      else
-        sudo /usr/local/bin/puppet agent -t
-      fi
+        sudo setenforce 0
+        sudo hostnamectl set-hostname lb.#{domain} --static
+        # Install puppet
+        /usr/local/bin/puppet --version 2&> /dev/null
+        if [ $? -ne 0 ]; then
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+        else
+          sudo /usr/local/bin/puppet agent -t
+        fi
+        SHELL
+    end
+  end
+
+  # Gitlab
+  if install_gitlab
+    config.vm.define "gitlab" do |gitlab|
+      gitlab.vm.hostname = "gitlab.#{domain}"
+      gitlab.hostmanager.aliases = %W(gitlab gitlab.#{domain})
+      gitlab.vm.provider :openstack do |os|
+        os.openstack_auth_url   = ENV['OS_AUTH_URL']
+        os.username             = ENV['OS_USERNAME']
+        os.password             = ENV['OS_PASSWORD']
+        os.domain_name          = ENV['OS_USER_DOMAIN_NAME']
+        os.project_name         = ENV['OS_PROJECT_NAME']
+        os.identity_api_version = ENV['OS_IDENTITY_API_VERSION']
+        os.flavor               = 'g1.medium'
+        os.image                = image
+        os.floating_ip_pool     = floating_ip_pool
+        os.keypair_name         = ssh_keypair
+        os.security_groups      = ['sg0']
+      end
+      gitlab.vm.provision "shell", inline: <<-SHELL
+        sudo setenforce 0
+        sudo hostnamectl set-hostname gitlab.#{domain} --static
+        # Install puppet
+        /usr/local/bin/puppet --version 2&> /dev/null
+        if [ $? -ne 0 ]; then
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+        else
+          sudo /usr/local/bin/puppet agent -t
+        fi
       SHELL
     end
   end

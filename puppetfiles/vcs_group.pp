@@ -4,5 +4,5 @@ node_group { 'Version Control Server':
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
-  rule                 => ['=', 'name', 'git.lmacchi.vm'],
+  rule                 => ['~', 'name', 'gitlab'],
 }
