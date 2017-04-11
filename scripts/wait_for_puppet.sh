@@ -4,3 +4,4 @@ do
   echo "Puppet run in progress, please wait"
   sleep 5
 done
+exit 0
