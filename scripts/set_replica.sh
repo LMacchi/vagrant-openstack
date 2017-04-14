@@ -1,6 +1,6 @@
 #!/bin/bash
 # If puppet is running, wait
-sudo /vagrant/scripts/wait_for_puppetdb_sync.sh &&
+sudo /vagrant/scripts/wait_for_puppet.sh &&
 # Proceed. Provision replica
 sudo /opt/puppetlabs/puppet/bin/puppet infrastructure provision replica replica.lmacchi.vm  &&
 # PuppetDB needs to sync, give it some time
