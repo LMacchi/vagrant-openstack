@@ -17,15 +17,16 @@ image = 'laura_centos_7_x86_64'
 ## Project
 domain = 'lmacchi.vm'
 cms = 0
-agents = 2
+agents = 1
 install_replica = false
 install_lb = false
 install_gitlab = false
 install_jenkins = true
 
 ## Puppet
-pe_ver = "2017.1.1"
-url = "https://pm.puppetlabs.com/cgi-bin/download.cgi?dist=el&rel=7&arch=x86_64&ver=#{pe_ver}"
+pe_ver = "2017.2.0"
+#url = "https://pm.puppetlabs.com/cgi-bin/download.cgi?dist=el&rel=7&arch=x86_64&ver=#{pe_ver}"
+url = "http://enterprise.delivery.puppetlabs.net/2017.2/ci-ready/puppet-enterprise-2017.2.0-rc1-533-gaf0df1a-el-7-x86_64.tar"
 
 Vagrant.configure(2) do |config|
   # Global configurations
@@ -64,7 +65,8 @@ Vagrant.configure(2) do |config|
         echo "Downloading Puppet Enterprise, this may take a few minutes"
         sudo wget --quiet --progress=bar:force --content-disposition "#{url}"
         # Extract tar to /root
-        sudo tar xzvf puppet-enterprise-*.tar* -C /root
+        #sudo tar xzvf puppet-enterprise-*.tar* -C /root
+        sudo tar xvf puppet-enterprise-*.tar* -C /root
         # Install PE from answers file
         echo "Ready to install Puppet Enterprise #{pe_ver}"
         sudo /root/puppet-enterprise-*/puppet-enterprise-installer -c /vagrant/puppetfiles/custom-pe.conf -y
