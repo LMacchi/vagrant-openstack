@@ -24,9 +24,8 @@ install_gitlab = false
 install_jenkins = true
 
 ## Puppet
-pe_ver = "2017.2.0"
-#url = "https://pm.puppetlabs.com/cgi-bin/download.cgi?dist=el&rel=7&arch=x86_64&ver=#{pe_ver}"
-url = "http://enterprise.delivery.puppetlabs.net/2017.2/ci-ready/puppet-enterprise-2017.2.0-rc1-533-gaf0df1a-el-7-x86_64.tar"
+pe_ver = "latest"
+url = "https://pm.puppetlabs.com/cgi-bin/download.cgi?dist=el&rel=7&arch=x86_64&ver=#{pe_ver}"
 
 Vagrant.configure(2) do |config|
   # Global configurations
@@ -64,9 +63,22 @@ Vagrant.configure(2) do |config|
         echo "Download URL: #{url}"
         echo "Downloading Puppet Enterprise, this may take a few minutes"
         sudo wget --quiet --progress=bar:force --content-disposition "#{url}"
+        if [ $? -ne 0 ]; then
+          echo "Puppet failed to download"
+          exit 2
+        fi
         # Extract tar to /root
-        #sudo tar xzvf puppet-enterprise-*.tar* -C /root
-        sudo tar xvf puppet-enterprise-*.tar* -C /root
+        sudo tar xzvf puppet-enterprise-*.tar* -C /root
+        if [ $? -ne 0 ]; then
+          echo "Puppet failed to extract"
+          exit 2
+        fi
+        # Add the SSH key for Code Manager, public is in my control-repo
+        if [ ! -d "/etc/puppetlabs/puppetserver/ssh" ]; then
+          sudo mkdir -p /etc/puppetlabs/puppetserver/ssh
+          sudo chmod 700 /etc/puppetlabs/puppetserver/ssh
+          sudo cp /vagrant/files/keys/id-control_repo.rsa* /etc/puppetlabs/puppetserver/ssh
+        fi
         # Install PE from answers file
         echo "Ready to install Puppet Enterprise #{pe_ver}"
         sudo /root/puppet-enterprise-*/puppet-enterprise-installer -c /vagrant/puppetfiles/custom-pe.conf -y
@@ -74,12 +86,14 @@ Vagrant.configure(2) do |config|
         sudo rm -fr /root/puppet-enterprise-*
         # Add an autosign condition
         sudo echo "*.#{domain}" > /etc/puppetlabs/puppet/autosign.conf
+        # Now that pe-puppet exists, change permissions for keys and config
+        sudo chown -R pe-puppet: /opt/puppetlabs/server/data/puppetserver/.ssh
+        sudo chown -R pe_puppet: /etc/puppetlabs/puppetserver/ssh
+        # Run puppet
         echo "Running puppet for the first time"
         sudo /opt/puppetlabs/puppet/bin/puppet agent -t
         echo "Running Puppet again"
         sudo /opt/puppetlabs/puppet/bin/puppet agent -t
-        #echo "Running Puppet again"
-        #sudo /opt/puppetlabs/puppet/bin/puppet agent -t
         # Create deploy token with admin, so replica can be provisioned
         echo "puppetlabs" | sudo /opt/puppetlabs/bin/puppet-access login admin --lifetime 90d
         # Deploy code
@@ -99,6 +113,12 @@ Vagrant.configure(2) do |config|
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vcs_group.pp
         # Add Jenkins group to the console
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/jenkins_group.pp
+        # Add vRA config to Master
+        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vra.pp
+        # Add vRA role to RBAC
+        sudo /vagrant/scripts/create_rbac_role.sh /vagrant/scripts/vra_role.json
+        # Add vRA user to RBAC
+        sudo /vagrant/scripts/create_rbac_user.sh /vagrant/scripts/vra_user.json
       else
         sudo /usr/local/bin/puppet agent -t | true
       fi

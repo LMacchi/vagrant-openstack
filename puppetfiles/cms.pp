@@ -1,8 +1,12 @@
 include node_manager
 
+Node_group {
+  provider => 'https',
+}
+
 node_group { 'Compile Masters':
   ensure               => 'present',
-  classes              => {'profile::compile_master' => {}},
+  classes              => {'role::puppet::cm' => {}},
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',

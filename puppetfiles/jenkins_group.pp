@@ -1,6 +1,10 @@
+Node_group {
+  provider => 'https',
+}
+
 node_group { 'Jenkins Server':
   ensure               => 'present',
-  classes              => { 'profile::jenkins' => {}},
+  classes              => { 'role::ci' => {}},
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',

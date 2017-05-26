@@ -1,0 +1,14 @@
+{
+  "description": "User for vRA",
+  "display_name": "vRA User",
+  "id": 5,
+  "user_ids": [],
+  "group_ids": [],
+  "permissions": [
+    {
+      "action": "view_data",
+      "instance": "*",
+      "object_type": "nodes"
+    }
+  ]
+}

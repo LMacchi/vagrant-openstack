@@ -1,3 +1,5 @@
 .vagrant
 *.tar.gz
 puppetfiles/keys
+files/keys
+.gitignore
