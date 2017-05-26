@@ -105,6 +105,8 @@ Vagrant.configure(2) do |config|
         # Update classes in console
         echo "Clearing classifier cache"
         sudo /vagrant/scripts/update_classes.sh
+        # Add Customizations to PE Master group
+        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/puppet_master.pp
         # Add Compile Masters to PE Master group and create CM group to export LB Member
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/cms.pp
         # Add Load Balancer group to the console
