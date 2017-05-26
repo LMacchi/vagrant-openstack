@@ -6,7 +6,7 @@ Node_group {
 
 node_group { 'Puppet Masters':
   ensure               => 'present',
-  classes              => {'role::puppet::puppet_master' => {}},
+  classes              => {'role::puppet::master' => {}},
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
