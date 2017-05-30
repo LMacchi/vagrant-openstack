@@ -38,7 +38,7 @@ Vagrant.configure(2) do |config|
 
   # Master 
   config.vm.define "master" do |master|
-    master.vm.hostname = "master.#{domain}"
+    master.vm.hostname = "10-32-175-155.rfc1918.puppetlabs.net"
     master.hostmanager.aliases = %W(master)
     master.vm.provider :openstack do |os|
       os.openstack_auth_url   = ENV['OS_AUTH_URL']
@@ -55,7 +55,7 @@ Vagrant.configure(2) do |config|
     end
     master.vm.provision "shell", privileged: true, inline: <<-SHELL
       sudo setenforce 0
-      sudo hostnamectl set-hostname master.#{domain} --static
+      sudo hostnamectl set-hostname 10-32-175-155.rfc1918.puppetlabs.net --static
       sudo yum -y install vim wget
       sudo /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then

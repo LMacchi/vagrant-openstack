@@ -10,5 +10,5 @@ node_group { 'Puppet Masters':
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
-  rule                 => ['=', 'name', 'master.lmacchi.vm'],
+  rule                 => ['=', 'name', $facts['fqdn']],
 }

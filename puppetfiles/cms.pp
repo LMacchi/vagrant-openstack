@@ -15,5 +15,5 @@ node_group { 'Compile Masters':
 
 node_group { 'PE Master':
   ensure  => 'present',
-  rule    => ['or', ['and', ['~', 'name', 'cm\d.lmacchi.vm']], ['=', 'name', 'master.lmacchi.vm']],
+  rule    => ['or', ['and', ['~', 'name', 'cm\d.lmacchi.vm']], ['=', 'name', $facts['fqdn']]],
 }

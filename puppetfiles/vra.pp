@@ -9,6 +9,6 @@ node_group { 'vRA Integration':
   classes              => {'profile::vra_config' => {}},
   environment          => 'production',
   override_environment => false,
-  parent               => 'PE Infrastructure',
-  rule                 => ['=', 'name', 'master.lmacchi.vm'],
+  parent               => 'All Nodes',
+  rule                 => ['=', 'name', $facts['fqdn']],
 }
