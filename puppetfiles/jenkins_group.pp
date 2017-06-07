@@ -8,5 +8,5 @@ node_group { 'Jenkins Server':
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
-  rule                 => ['~', 'name', 'jenkins'],
+  rule                 => ['and', ['=', ['trusted', 'extensions', 'pp_role'], 'ci']],
 }

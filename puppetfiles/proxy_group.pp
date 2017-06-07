@@ -8,5 +8,5 @@ node_group { 'Proxy Server':
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
-  rule                 => ['=', 'name', 'lb.lmacchi.vm'],
+  rule                 => ['and', ['=', ['trusted', 'extensions', 'pp_role'], 'lb']],
 }

@@ -38,8 +38,7 @@ Vagrant.configure(2) do |config|
 
   # Master 
   config.vm.define "master" do |master|
-    master.vm.hostname = "10-32-175-155.rfc1918.puppetlabs.net"
-    master.hostmanager.aliases = %W(master)
+    master.vm.hostname = "master.#{domain}"
     master.vm.provider :openstack do |os|
       os.openstack_auth_url   = ENV['OS_AUTH_URL']
       os.username             = ENV['OS_USERNAME']
@@ -55,7 +54,7 @@ Vagrant.configure(2) do |config|
     end
     master.vm.provision "shell", privileged: true, inline: <<-SHELL
       sudo setenforce 0
-      sudo hostnamectl set-hostname 10-32-175-155.rfc1918.puppetlabs.net --static
+      sudo /vagrant/scripts/set_hostname.sh
       sudo yum -y install vim wget
       sudo /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then
@@ -86,6 +85,7 @@ Vagrant.configure(2) do |config|
         sudo rm -fr /root/puppet-enterprise-*
         # Add an autosign condition
         sudo echo "*.#{domain}" > /etc/puppetlabs/puppet/autosign.conf
+        sudo echo "*.rfc1918.puppetlabs.net"  >> /etc/puppetlabs/puppet/autosign.conf
         # Now that pe-puppet exists, change permissions for keys and config
         sudo chown -R pe-puppet: /opt/puppetlabs/server/data/puppetserver/.ssh
         sudo chown -R pe_puppet: /etc/puppetlabs/puppetserver/ssh
@@ -121,6 +121,7 @@ Vagrant.configure(2) do |config|
         sudo /vagrant/scripts/create_rbac_role.sh /vagrant/scripts/vra_role.json
         # Add vRA user to RBAC
         sudo /vagrant/scripts/create_rbac_user.sh /vagrant/scripts/vra_user.json
+        sudo /usr/local/bin/puppet agent -t | true
       else
         sudo /usr/local/bin/puppet agent -t | true
       fi
@@ -131,7 +132,6 @@ Vagrant.configure(2) do |config|
   if install_replica
     config.vm.define "replica" do |replica|
       replica.vm.hostname = "replica.#{domain}"
-      replica.hostmanager.aliases = %W(replica)
       replica.vm.provider :openstack do |os|
         os.openstack_auth_url   = ENV['OS_AUTH_URL']
         os.username             = ENV['OS_USERNAME']
@@ -147,11 +147,11 @@ Vagrant.configure(2) do |config|
       end
       replica.vm.provision "shell", inline: <<-SHELL
       sudo setenforce 0
-      sudo hostnamectl set-hostname replica.#{domain} --static
+      sudo /vagrant/scripts/set_hostname.sh
       # Install puppet
       /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then
-        curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+        curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=replica
       fi 
       sudo /usr/local/bin/puppet agent -t | true
       SHELL
@@ -162,7 +162,6 @@ Vagrant.configure(2) do |config|
   if install_lb
     config.vm.define "lb" do |lb|
       lb.vm.hostname = "lb.#{domain}"
-      lb.hostmanager.aliases = %W(lb)
       lb.vm.provider :openstack do |os|
         os.openstack_auth_url   = ENV['OS_AUTH_URL']
         os.username             = ENV['OS_USERNAME']
@@ -178,11 +177,11 @@ Vagrant.configure(2) do |config|
       end
       lb.vm.provision "shell", inline: <<-SHELL
         sudo setenforce 0
-        sudo hostnamectl set-hostname lb.#{domain} --static
+        sudo /vagrant/scripts/set_hostname.sh
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=lb
         fi 
         sudo /usr/local/bin/puppet agent -t | true
         SHELL
@@ -193,7 +192,6 @@ Vagrant.configure(2) do |config|
   if install_gitlab
     config.vm.define "gitlab" do |gitlab|
       gitlab.vm.hostname = "gitlab.#{domain}"
-      gitlab.hostmanager.aliases = %W(gitlab)
       gitlab.vm.provider :openstack do |os|
         os.openstack_auth_url   = ENV['OS_AUTH_URL']
         os.username             = ENV['OS_USERNAME']
@@ -209,11 +207,11 @@ Vagrant.configure(2) do |config|
       end
       gitlab.vm.provision "shell", inline: <<-SHELL
         sudo setenforce 0
-        sudo hostnamectl set-hostname gitlab.#{domain} --static
+        sudo /vagrant/scripts/set_hostname.sh
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=vcs
         fi
         sudo /usr/local/bin/puppet agent -t | true
       SHELL
@@ -224,7 +222,6 @@ Vagrant.configure(2) do |config|
   if install_jenkins
     config.vm.define "jenkins" do |jenkins|
       jenkins.vm.hostname = "jenkins.#{domain}"
-      jenkins.hostmanager.aliases = %W(jenkins)
       jenkins.vm.provider :openstack do |os|
         os.openstack_auth_url   = ENV['OS_AUTH_URL']
         os.username             = ENV['OS_USERNAME']
@@ -240,11 +237,11 @@ Vagrant.configure(2) do |config|
       end
       jenkins.vm.provision "shell", inline: <<-SHELL
         sudo setenforce 0
-        sudo hostnamectl set-hostname jenkins.#{domain} --static
+        sudo /vagrant/scripts/set_hostname.sh
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=ci
         fi 
         sudo /usr/local/bin/puppet agent -t | true
         SHELL
@@ -257,7 +254,6 @@ Vagrant.configure(2) do |config|
     (1..cms).each do |i|
       config.vm.define "cm#{i}" do |cm|
         cm.vm.hostname = "cm#{i}.#{domain}"
-        cm.hostmanager.aliases = %W(cm#{i})
         cm.vm.provider :openstack do |os|
           os.openstack_auth_url   = ENV['OS_AUTH_URL']
           os.username             = ENV['OS_USERNAME']
@@ -273,11 +269,11 @@ Vagrant.configure(2) do |config|
         end
         cm.vm.provision "shell", inline: <<-SHELL
           sudo setenforce 0
-          sudo hostnamectl set-hostname cm#{i}.#{domain} --static
+          sudo /vagrant/scripts/set_hostname.sh
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
-            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s main:dns_alt_names=puppet,puppet.#{domain},lb,lb.#{domain}
+            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s main:dns_alt_names=puppet,puppet.#{domain},lb,lb.#{domain} extension_requests:pp_role=puppet::cm
           else
             sudo /usr/local/bin/puppet agent -t | true
           fi
@@ -292,7 +288,6 @@ Vagrant.configure(2) do |config|
     (1..agents).each do |i|
       config.vm.define "agent#{i}" do |agent|
         agent.vm.hostname = "agent#{i}.#{domain}"
-        agent.hostmanager.aliases = %W(agent#{i})
         agent.vm.provider :openstack do |os|
           os.openstack_auth_url   = ENV['OS_AUTH_URL']
           os.username             = ENV['OS_USERNAME']
@@ -308,7 +303,7 @@ Vagrant.configure(2) do |config|
         end
         agent.vm.provision "shell", inline: <<-SHELL
           sudo setenforce 0
-          sudo hostnamectl set-hostname agent#{i}.#{domain} --static
+          sudo /vagrant/scripts/set_hostname.sh
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
