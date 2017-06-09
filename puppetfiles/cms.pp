@@ -10,12 +10,12 @@ node_group { 'Compile Masters':
   environment          => 'production',
   override_environment => false,
   parent               => 'All Nodes',
-  rule                 => ['and', ['=', ['trusted', 'extensions', 'pp_role'], 'puppet::cm']]
+  rule                 => ['=', ['trusted', 'extensions', 'pp_role'], 'puppet::cm']
 }
 
 node_group { 'PE Master':
   ensure => 'present',
-  rule   => ['or', ['and', ['=', ['trusted', 'extensions', 'pp_role'], 'puppet::cm']], ['=', 'name', $facts['fqdn']]],
+  rule   => ['or', ['=', ['trusted', 'extensions', 'pp_role'], 'puppet::cm'], ['=', 'name', $facts['fqdn']]],
 }
 
 
