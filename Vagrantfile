@@ -17,7 +17,7 @@ image = 'laura_centos_7_x86_64'
 ## Project
 domain = 'lmacchi.vm'
 cms = 0
-agents = 1
+agents = 3
 install_replica = false
 install_lb = false
 install_gitlab = false
@@ -55,7 +55,7 @@ Vagrant.configure(2) do |config|
     master.vm.provision "shell", privileged: true, inline: <<-SHELL
       sudo setenforce 0
       sudo /vagrant/scripts/set_hostname.sh
-      sudo yum -y install vim wget
+      sudo yum -y install vim wget git
       sudo /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then
         # Download tar
@@ -83,12 +83,8 @@ Vagrant.configure(2) do |config|
         sudo /root/puppet-enterprise-*/puppet-enterprise-installer -c /vagrant/puppetfiles/custom-pe.conf -y
         # Clean up
         sudo rm -fr /root/puppet-enterprise-*
-        # Add an autosign condition
-        sudo echo "*.#{domain}" > /etc/puppetlabs/puppet/autosign.conf
-        sudo echo "*.rfc1918.puppetlabs.net"  >> /etc/puppetlabs/puppet/autosign.conf
         # Now that pe-puppet exists, change permissions for keys and config
-        sudo chown -R pe-puppet: /opt/puppetlabs/server/data/puppetserver/.ssh
-        sudo chown -R pe_puppet: /etc/puppetlabs/puppetserver/ssh
+        sudo chown -R pe-puppet: /etc/puppetlabs/puppetserver/ssh
         # Run puppet
         echo "Running puppet for the first time"
         sudo /opt/puppetlabs/puppet/bin/puppet agent -t
@@ -115,6 +111,8 @@ Vagrant.configure(2) do |config|
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vcs_group.pp
         # Add Jenkins group to the console
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/jenkins_group.pp
+        # Enable package collector
+        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/package_collector.pp
         # Add vRA config to Master
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vra.pp
         # Add vRA role to RBAC
@@ -151,7 +149,7 @@ Vagrant.configure(2) do |config|
       # Install puppet
       /usr/local/bin/puppet --version 2&> /dev/null
       if [ $? -ne 0 ]; then
-        curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=replica
+        curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=replica custom_attributes:challengePassword=S3cr3tP@ssw0rd!
       fi 
       sudo /usr/local/bin/puppet agent -t | true
       SHELL
@@ -181,7 +179,7 @@ Vagrant.configure(2) do |config|
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=lb
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=lb custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi 
         sudo /usr/local/bin/puppet agent -t | true
         SHELL
@@ -211,7 +209,7 @@ Vagrant.configure(2) do |config|
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=vcs
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=vcs custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi
         sudo /usr/local/bin/puppet agent -t | true
       SHELL
@@ -241,8 +239,9 @@ Vagrant.configure(2) do |config|
         # Install puppet
         /usr/local/bin/puppet --version 2&> /dev/null
         if [ $? -ne 0 ]; then
-          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=ci
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=ci custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi 
+        sudo /vagrant/scripts/wait_for_puppet.sh
         sudo /usr/local/bin/puppet agent -t | true
         SHELL
     end
@@ -273,7 +272,7 @@ Vagrant.configure(2) do |config|
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
-            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s main:dns_alt_names=puppet,puppet.#{domain},lb,lb.#{domain} extension_requests:pp_role=puppet::cm
+            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s main:dns_alt_names=puppet,puppet.#{domain},lb,lb.#{domain} extension_requests:pp_role=puppet::cm custom_attributes:challengePassword=S3cr3tP@ssw0rd!
           else
             sudo /usr/local/bin/puppet agent -t | true
           fi
@@ -307,8 +306,10 @@ Vagrant.configure(2) do |config|
           # Install puppet
           /usr/local/bin/puppet --version 2&> /dev/null
           if [ $? -ne 0 ]; then
-            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash
+            curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=agent#{i} custom_attributes:challengePassword=S3cr3tP@ssw0rd! 
           fi
+          echo "Puppet install finished with code $?"
+          sudo /vagrant/scripts/wait_for_puppet.sh
           sudo /usr/local/bin/puppet agent -t | true
         SHELL
       end
