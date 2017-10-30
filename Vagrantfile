@@ -17,7 +17,7 @@ image = 'laura_centos_7_x86_64'
 ## Project
 domain = 'lmacchi.vm'
 cms = 0
-agents = 3
+agents = 1
 install_replica = false
 install_lb = false
 install_gitlab = false
@@ -78,6 +78,10 @@ Vagrant.configure(2) do |config|
           sudo chmod 700 /etc/puppetlabs/puppetserver/ssh
           sudo cp /vagrant/files/keys/id-control_repo.rsa* /etc/puppetlabs/puppetserver/ssh
         fi
+        if [ ! -d "/etc/puppetlabs/puppet" ]; then
+          sudo mkdir -p /etc/puppetlabs/puppet
+          sudo cp /vagrant/puppetfiles/csr_attributes.yaml /etc/puppetlabs/puppet/csr_attributes.yaml
+        fi
         # Install PE from answers file
         echo "Ready to install Puppet Enterprise #{pe_ver}"
         sudo /root/puppet-enterprise-*/puppet-enterprise-installer -c /vagrant/puppetfiles/custom-pe.conf -y
@@ -101,20 +105,8 @@ Vagrant.configure(2) do |config|
         # Update classes in console
         echo "Clearing classifier cache"
         sudo /vagrant/scripts/update_classes.sh
-        # Add Customizations to PE Master group
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/puppet_master.pp
-        # Add Compile Masters to PE Master group and create CM group to export LB Member
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/cms.pp
-        # Add Load Balancer group to the console
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/proxy_group.pp
-        # Add Gitlab group to the console
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vcs_group.pp
-        # Add Jenkins group to the console
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/jenkins_group.pp
-        # Enable package collector
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/package_collector.pp
-        # Add vRA config to Master
-        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/vra.pp
+        # Create Classification
+        sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/classification.pp
         # Add vRA role to RBAC
         sudo /vagrant/scripts/create_rbac_role.sh /vagrant/scripts/vra_role.json
         # Add vRA user to RBAC

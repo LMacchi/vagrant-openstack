@@ -1,0 +1,10 @@
+hosts 
+vagrant-hostmanager 
+vagrant-hosts 
+vagrant-openstack-provider 
+vagrant-rdp 
+vagrant-reload 
+vagrant-scp 
+vagrant-share 
+vagrant-shell-commander 
+vagrant-triggers 

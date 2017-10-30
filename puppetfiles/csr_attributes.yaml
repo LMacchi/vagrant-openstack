@@ -1,0 +1,3 @@
+---
+extensions:
+  pp_role: 'puppet::master'
