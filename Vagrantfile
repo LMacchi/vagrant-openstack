@@ -22,6 +22,7 @@ install_replica = false
 install_lb = false
 install_gitlab = false
 install_jenkins = true
+install_docker = true
 
 ## Puppet
 pe_ver = "latest"
@@ -108,12 +109,18 @@ Vagrant.configure(2) do |config|
         # Create Classification
         sudo /opt/puppetlabs/puppet/bin/puppet apply /vagrant/puppetfiles/classification.pp
         # Add vRA role to RBAC
-        sudo /vagrant/scripts/create_rbac_role.sh /vagrant/scripts/vra_role.json
+        #sudo /vagrant/scripts/create_rbac_role.sh /vagrant/scripts/vra_role.json
         # Add vRA user to RBAC
-        sudo /vagrant/scripts/create_rbac_user.sh /vagrant/scripts/vra_user.json
-        sudo /usr/local/bin/puppet agent -t | true
+        #sudo /vagrant/scripts/create_rbac_user.sh /vagrant/scripts/vra_user.json
+        # Clear environments cache
+        echo "Clearing environments cache"
+        sudo /vagrant/scripts/update_environments.sh
+        # Update classes in console
+        echo "Clearing classifier cache"
+        sudo /vagrant/scripts/update_classes.sh
+        sudo /usr/local/bin/puppet agent -t || :
       else
-        sudo /usr/local/bin/puppet agent -t | true
+        sudo /usr/local/bin/puppet agent -t || :
       fi
     SHELL
   end
@@ -143,7 +150,7 @@ Vagrant.configure(2) do |config|
       if [ $? -ne 0 ]; then
         curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=replica custom_attributes:challengePassword=S3cr3tP@ssw0rd!
       fi 
-      sudo /usr/local/bin/puppet agent -t | true
+      sudo /usr/local/bin/puppet agent -t || :
       SHELL
     end
   end
@@ -173,7 +180,7 @@ Vagrant.configure(2) do |config|
         if [ $? -ne 0 ]; then
           curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=lb custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi 
-        sudo /usr/local/bin/puppet agent -t | true
+        sudo /usr/local/bin/puppet agent -t || :
         SHELL
     end
   end
@@ -203,7 +210,7 @@ Vagrant.configure(2) do |config|
         if [ $? -ne 0 ]; then
           curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=vcs custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi
-        sudo /usr/local/bin/puppet agent -t | true
+        sudo /usr/local/bin/puppet agent -t || :
       SHELL
     end
   end
@@ -234,7 +241,7 @@ Vagrant.configure(2) do |config|
           curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=ci custom_attributes:challengePassword=S3cr3tP@ssw0rd!
         fi 
         sudo /vagrant/scripts/wait_for_puppet.sh
-        sudo /usr/local/bin/puppet agent -t | true
+        sudo /usr/local/bin/puppet agent -t || :
         SHELL
     end
   end
@@ -266,13 +273,42 @@ Vagrant.configure(2) do |config|
           if [ $? -ne 0 ]; then
             curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s main:dns_alt_names=puppet,puppet.#{domain},lb,lb.#{domain} extension_requests:pp_role=puppet::cm custom_attributes:challengePassword=S3cr3tP@ssw0rd!
           else
-            sudo /usr/local/bin/puppet agent -t | true
+            sudo /usr/local/bin/puppet agent -t || :
           fi
         SHELL
       end
     end
   end
 
+  # Docker
+  if install_docker
+    config.vm.define "docker" do |docker|
+      docker.vm.hostname = "docker.#{domain}"
+      docker.vm.provider :openstack do |os|
+        os.openstack_auth_url   = ENV['OS_AUTH_URL']
+        os.username             = ENV['OS_USERNAME']
+        os.password             = ENV['OS_PASSWORD']
+        os.domain_name          = ENV['OS_USER_DOMAIN_NAME']
+        os.project_name         = ENV['OS_PROJECT_NAME']
+        os.identity_api_version = ENV['OS_IDENTITY_API_VERSION']
+        os.flavor               = 'm1.large'
+        os.image                = image
+        os.floating_ip_pool     = floating_ip_pool
+        os.keypair_name         = ssh_keypair
+        os.security_groups      = ['sg0']
+      end
+      docker.vm.provision "shell", inline: <<-SHELL
+        sudo setenforce 0
+        sudo /vagrant/scripts/set_hostname.sh
+        # Install puppet
+        /usr/local/bin/puppet --version 2&> /dev/null
+        if [ $? -ne 0 ]; then
+          curl -s -k https://master.#{domain}:8140/packages/current/install.bash | sudo bash -s extension_requests:pp_role=docker custom_attributes:challengePassword=S3cr3tP@ssw0rd!
+        fi
+        sudo /usr/local/bin/puppet agent -t || :
+      SHELL
+    end
+  end
 
   # Agents
   if agents > 0
@@ -302,7 +338,7 @@ Vagrant.configure(2) do |config|
           fi
           echo "Puppet install finished with code $?"
           sudo /vagrant/scripts/wait_for_puppet.sh
-          sudo /usr/local/bin/puppet agent -t | true
+          sudo /usr/local/bin/puppet agent -t || :
         SHELL
       end
     end
